@@ -1,5 +1,8 @@
+"""Indo-Voice-3 speech stack."""
+
 from sentinel.voice.adapter import VoiceAdapter, VoiceSession
 from sentinel.voice.stt_tts import create_stt, create_tts, AudioChunk
+from sentinel.voice.factory import build_voice_system, TokenizerBridge
 
 __all__ = [
     "VoiceAdapter",
@@ -7,10 +10,6 @@ __all__ = [
     "create_stt",
     "create_tts",
     "AudioChunk",
+    "build_voice_system",
+    "TokenizerBridge",
 ]
-
-def __getattr__(name):
-    if name == "create_voice_app":
-        from sentinel.voice.server import create_voice_app
-        return create_voice_app
-    raise AttributeError(name)

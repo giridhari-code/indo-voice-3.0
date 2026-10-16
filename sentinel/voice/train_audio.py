@@ -219,6 +219,7 @@ def main():
     ap.add_argument("--device", default="cpu")
     ap.add_argument("--output", default="checkpoints/indo_audio.pt")
     ap.add_argument("--synth-size", type=int, default=32)
+    ap.add_argument("--allow-synth", action="store_true", help="Allow synthetic data when --data missing (dev only)")
     args = ap.parse_args()
 
     cfg = IndoVoiceConfig.from_env()
@@ -240,6 +241,8 @@ def main():
         cfg.model.vocab_size = tokenizer.vocab_size
         logger.warning("No LM checkpoint — contrastive only")
 
+    if not args.data and not args.allow_synth:
+        raise SystemExit("Provide --data manifest.jsonl or pass --allow-synth for development only")
     ds = SpeechTextDataset(args.data, tokenizer, sample_rate=cfg.audio.sample_rate, synth_size=args.synth_size)
     loader = DataLoader(ds, batch_size=args.batch_size, shuffle=True, collate_fn=collate)
 

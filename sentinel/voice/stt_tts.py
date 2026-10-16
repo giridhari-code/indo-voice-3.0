@@ -152,29 +152,39 @@ class DummyTTS(TTSBackend):
 
 def create_stt(provider: Optional[str] = None, **kwargs) -> STTBackend:
     provider = (provider or os.getenv("INDO_STT_PROVIDER", "auto")).lower()
+    allow_dummy = os.getenv("INDO_ALLOW_DUMMY_IO", "0").lower() in ("1", "true", "yes")
     if provider in ("whisper", "faster-whisper", "auto"):
         try:
             return WhisperSTT(**kwargs)
         except Exception as e:
-            if provider != "auto":
-                raise
-            logger.warning("Whisper unavailable (%s) → DummySTT", e)
-            return DummySTT()
+            if provider == "auto" and allow_dummy:
+                logger.warning("Whisper unavailable (%s); INDO_ALLOW_DUMMY_IO set → DummySTT", e)
+                return DummySTT()
+            raise RuntimeError(
+                f"STT backend unavailable: {e}. Install faster-whisper or set INDO_STT_PROVIDER=dummy "
+                "with INDO_ALLOW_DUMMY_IO=1 for offline tests only."
+            ) from e
     if provider == "dummy":
+        if not allow_dummy:
+            logger.warning("DummySTT requested — set INDO_ALLOW_DUMMY_IO=1 to silence this in CI")
         return DummySTT()
     raise ValueError(f"Unknown STT provider: {provider}")
 
 
 def create_tts(provider: Optional[str] = None, **kwargs) -> TTSBackend:
     provider = (provider or os.getenv("INDO_TTS_PROVIDER", "auto")).lower()
+    allow_dummy = os.getenv("INDO_ALLOW_DUMMY_IO", "0").lower() in ("1", "true", "yes")
     if provider in ("coqui", "xtts", "auto"):
         try:
             return CoquiTTS(**kwargs)
         except Exception as e:
-            if provider != "auto":
-                raise
-            logger.warning("Coqui unavailable (%s) → DummyTTS", e)
-            return DummyTTS()
+            if provider == "auto" and allow_dummy:
+                logger.warning("Coqui unavailable (%s); INDO_ALLOW_DUMMY_IO set → DummyTTS", e)
+                return DummyTTS()
+            if provider == "auto":
+                logger.warning("Coqui unavailable (%s); using DummyTTS until TTS is installed", e)
+                return DummyTTS()
+            raise RuntimeError(f"TTS backend unavailable: {e}. pip install TTS") from e
     if provider == "dummy":
         return DummyTTS()
     raise ValueError(f"Unknown TTS provider: {provider}")

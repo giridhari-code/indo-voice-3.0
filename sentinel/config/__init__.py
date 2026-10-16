@@ -1,4 +1,5 @@
-"""SENTINEL + Indo-Voice configuration."""
+"""Configuration package."""
+
 from sentinel.config.base import (
     ModelConfig,
     TrainingConfig,
@@ -15,6 +16,7 @@ from sentinel.config.model_config import (
     AudioConfig,
     VoiceConfig,
 )
+from sentinel.config.settings import Settings, get_settings
 
 __all__ = [
     "ModelConfig",
@@ -29,4 +31,6 @@ __all__ = [
     "IndoVoiceConfig",
     "AudioConfig",
     "VoiceConfig",
+    "Settings",
+    "get_settings",
 ]
