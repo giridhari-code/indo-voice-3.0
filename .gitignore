@@ -18,3 +18,4 @@ checkpoints/
 runs/
 *.log
 .DS_Store
+checkpoints/AERIS_main/*.safetensors
