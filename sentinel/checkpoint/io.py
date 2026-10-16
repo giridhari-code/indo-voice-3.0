@@ -60,6 +60,31 @@ def _save_tensors(tensors: dict, path: str) -> None:
     save_file(tensors, path)
 
 
+def _load_tensors_pure(path: Path, device: str = "cpu") -> dict:
+    """Minimal safetensors reader (no external package)."""
+    import json, struct
+    data = path.read_bytes()
+    header_len = struct.unpack("<Q", data[:8])[0]
+    header = json.loads(data[8:8 + header_len].decode("utf-8"))
+    base = 8 + header_len
+    dtype_map = {
+        "F32": torch.float32, "F16": torch.float16, "BF16": torch.bfloat16,
+        "I64": torch.int64, "I32": torch.int32, "BOOL": torch.bool,
+    }
+    out = {}
+    for name, info in header.items():
+        if name == "__metadata__":
+            continue
+        dt = dtype_map.get(info["dtype"])
+        if dt is None:
+            continue
+        start, end = info["data_offsets"]
+        buf = data[base + start: base + end]
+        t = torch.frombuffer(bytearray(buf), dtype=dt).reshape(info["shape"]).clone()
+        out[name] = t.to(device)
+    return out
+
+
 def _load_tensors(path: str, device: str = "cpu") -> dict:
     """Load weights from a .safetensors file only (no .pt / pickle)."""
     path_p = Path(path)
@@ -67,11 +92,11 @@ def _load_tensors(path: str, device: str = "cpu") -> dict:
         raise ValueError(
             f"Refusing to load {path_p}: only .safetensors is supported (no .pt fallback)."
         )
-    if not _HAS_ST:
-        raise ImportError("safetensors is required: pip install safetensors")
     if not path_p.is_file():
         raise FileNotFoundError(f"No tensor file at {path}")
-    return load_file(str(path_p), device=device)
+    if _HAS_ST:
+        return load_file(str(path_p), device=device)
+    return _load_tensors_pure(path_p, device=device)
 
 
 def save_checkpoint(
